@@ -17,6 +17,7 @@ public class SpawnTetromino : MonoBehaviour
         new Color(0.9f, 0.3f, 0.6f), // pink 
         new Color(0.3f, 0.9f, 0.7f) // cyan 
     };
+    private int lastColor;
 
     // Start is called before the first frame update
     void Start()
@@ -27,7 +28,14 @@ public class SpawnTetromino : MonoBehaviour
     public void SpawnNew()
     {
         currentObject = Instantiate(types[Random.Range(0, types.Length)], transform.position, Quaternion.identity);
-        currentColor = colorArray[Random.Range(0, colorArray.Length)];
+        int tempColor;
+        do
+        {
+            tempColor = Random.Range(0, colorArray.Length);
+        }
+        while (tempColor == lastColor);
+        lastColor = tempColor;
+        currentColor = colorArray[lastColor];
         foreach (Transform child in currentObject.transform)
         {
            child.GetComponent<Renderer>().material.SetColor("_Color", currentColor);

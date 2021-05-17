@@ -14,7 +14,9 @@ public class BlockBehavior : MonoBehaviour
     private float lastTimeMove;
     private float stepTime = 0.8f;
     private Vector3 rotationCenter;
-    private int xMax = 10, yMax = 20;
+    private static int xMax = 10, yMax = 20;
+    private static Transform[,] currentGridCondition = new Transform[xMax, yMax];
+    
 
 
     // Start is called before the first frame update
@@ -22,26 +24,27 @@ public class BlockBehavior : MonoBehaviour
     {
         Application.targetFrameRate = 60;
         rotationCenter = GenerateRotationCenter();
-       
+
     }
 
     // Update is called once per frame
     void Update()
     {
         if (Input.GetKeyUp(KeyCode.LeftArrow)||Input.GetKeyUp(KeyCode.RightArrow) || // check left/right arrow keys released
-            (Input.GetKeyDown(KeyCode.RightArrow)&&Input.GetKeyDown(KeyCode.LeftArrow))) // or both buttons are pressed
+            Input.GetKeyUp(KeyCode.A) || Input.GetKeyUp(KeyCode.D)) // check a/d  keys released
         {            
             isMoving = 0; // stop moving
         }
-        else if (Input.GetKeyDown(KeyCode.LeftArrow) && isMoving == 0) // check left arrow key pressed
+        else if ((Input.GetKeyDown(KeyCode.LeftArrow) || Input.GetKeyDown(KeyCode.A)) && isMoving == 0)// check left arrow key pressed
+                
         {
             isMoving = -1; // to left            
         }
-        else if (Input.GetKeyDown(KeyCode.RightArrow) && isMoving == 0) // check right arrow key pressed
+        else if ((Input.GetKeyDown(KeyCode.RightArrow) || Input.GetKeyDown(KeyCode.D)) && isMoving == 0) // check right arrow key pressed
         {
             isMoving = 1; // to right            
         }
-        else if (Input.GetKeyDown(KeyCode.UpArrow))
+        else if (Input.GetKeyDown(KeyCode.UpArrow) || Input.GetKeyDown(KeyCode.Space))
         {
             Rotate(90);
             if (!CanMove())
@@ -49,12 +52,14 @@ public class BlockBehavior : MonoBehaviour
                 Rotate(-90);
             }
         }
-        if ((Input.GetKey(KeyCode.DownArrow) && Time.time - lastTimeFall>stepTime/10) || Time.time - lastTimeFall > stepTime)
+        if (((Input.GetKey(KeyCode.DownArrow) || Input.GetKey(KeyCode.S)) && Time.time - lastTimeFall>stepTime/10) || Time.time - lastTimeFall > stepTime)
         {
             transform.position += new Vector3(0, -1, 0);
+
             if (!CanMove())
             {
                 transform.position -= new Vector3(0, -1, 0);
+                GridConditionUpdate();
                 this.enabled = false;
                 FindObjectOfType<SpawnTetromino>().SpawnNew();
             }
@@ -106,17 +111,32 @@ public class BlockBehavior : MonoBehaviour
         return new Vector3(maxX / 2.0f, (maxY + 1) / 2.0f, 0);
     }
 
+    void GridConditionUpdate()
+    {
+        foreach (Transform child in transform)
+        {
+            int roundedX = (int)Math.Round(child.transform.position.x);
+            int roundedY = (int)Math.Round(child.transform.position.y);
+            currentGridCondition[roundedX, roundedY] = child;
+            
+        }
+
+    }
+
     bool CanMove()
     {
         foreach (Transform child in transform)
         {
             int roundedX = (int)Math.Round(child.transform.position.x);
             int roundedY = (int)Math.Round(child.transform.position.y);
-
             if (roundedX<0||roundedX>=xMax||roundedY<0||roundedY>=yMax)
             {
                 return false;
             }
+            if (currentGridCondition[roundedX, roundedY] != null)
+            {
+                return false;
+            }            
         }
         return true;
     }
