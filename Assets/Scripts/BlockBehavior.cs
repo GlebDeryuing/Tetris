@@ -7,19 +7,22 @@ using UnityEngine.UI;
 
 public class BlockBehavior : MonoBehaviour
 {
+    private System.Random randomizer = new System.Random();
+    private SpawnTetromino spawner = new SpawnTetromino();
     private int isMoving = 0; // 0 - not moving, negative value - moving to left, positive - to right
     private float lastTimeFall;
     private float lastTimeMove;
     private float stepTime = 0.8f;
     private Vector3 rotationCenter;
     private int xMax = 10, yMax = 20;
-    public Text MyText;
+
 
     // Start is called before the first frame update
     void Start()
     {
         Application.targetFrameRate = 60;
         rotationCenter = GenerateRotationCenter();
+       
     }
 
     // Update is called once per frame
@@ -52,6 +55,8 @@ public class BlockBehavior : MonoBehaviour
             if (!CanMove())
             {
                 transform.position -= new Vector3(0, -1, 0);
+                this.enabled = false;
+                FindObjectOfType<SpawnTetromino>().SpawnNew();
             }
             lastTimeFall = Time.time;
         }
@@ -94,7 +99,11 @@ public class BlockBehavior : MonoBehaviour
                 maxY = tempY;
             }
         }
-        return new Vector3(maxX / 2, (maxY + 1) / 2, 0);
+        if (maxX % 2 == 1)
+        {
+            return new Vector3(maxX / 2.0f, 0.5f, 0);
+        }        
+        return new Vector3(maxX / 2.0f, (maxY + 1) / 2.0f, 0);
     }
 
     bool CanMove()
