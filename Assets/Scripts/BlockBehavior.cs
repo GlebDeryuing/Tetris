@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System;
 using UnityEngine;
 using UnityEditor;
+using UnityEngine.UI;
 
 public class BlockBehavior : MonoBehaviour
 {
@@ -12,16 +13,19 @@ public class BlockBehavior : MonoBehaviour
     private float stepTime = 0.8f;
     private Vector3 rotationCenter;
     private int xMax = 10, yMax = 20;
+    public Text MyText;
 
     // Start is called before the first frame update
     void Start()
     {
         Application.targetFrameRate = 60;
+        rotationCenter = GenerateRotationCenter();
     }
 
     // Update is called once per frame
     void Update()
-    {    if (Input.GetKeyUp(KeyCode.LeftArrow)||Input.GetKeyUp(KeyCode.RightArrow) || // check left/right arrow keys released
+    {
+        if (Input.GetKeyUp(KeyCode.LeftArrow)||Input.GetKeyUp(KeyCode.RightArrow) || // check left/right arrow keys released
             (Input.GetKeyDown(KeyCode.RightArrow)&&Input.GetKeyDown(KeyCode.LeftArrow))) // or both buttons are pressed
         {            
             isMoving = 0; // stop moving
@@ -36,10 +40,10 @@ public class BlockBehavior : MonoBehaviour
         }
         else if (Input.GetKeyDown(KeyCode.UpArrow))
         {
-            transform.RotateAround(transform.TransformPoint(rotationCenter), new Vector3(0, 0, 1), 90);
+            Rotate(90);
             if (!CanMove())
             {
-                transform.RotateAround(transform.TransformPoint(rotationCenter), new Vector3(0, 0, 1), -90);
+                Rotate(-90);
             }
         }
         if ((Input.GetKey(KeyCode.DownArrow) && Time.time - lastTimeFall>stepTime/10) || Time.time - lastTimeFall > stepTime)
@@ -61,6 +65,36 @@ public class BlockBehavior : MonoBehaviour
             lastTimeMove = Time.time;
         }
 
+    }
+
+    void Rotate(int deg)
+    {
+        transform.RotateAround(transform.TransformPoint(rotationCenter), new Vector3(0, 0, 1), deg);
+        foreach (Transform child in transform)
+        {
+            child.rotation = Quaternion.Euler(new Vector3(0, 0, child.rotation.eulerAngles.z - deg));
+        }
+    }
+
+    Vector3 GenerateRotationCenter()
+    {
+        int maxX = 0, maxY = 0;
+        foreach (Transform child in transform)
+        {
+            int tempX = (int)Math.Round(child.transform.position.x - transform.transform.position.x);
+            int tempY = (int)Math.Round(child.transform.position.y - transform.transform.position.y);
+
+
+            if (maxX < tempX)
+            {
+                maxX = tempX;
+            }
+            if (maxY < tempY)
+            {
+                maxY = tempY;
+            }
+        }
+        return new Vector3(maxX / 2, (maxY + 1) / 2, 0);
     }
 
     bool CanMove()
