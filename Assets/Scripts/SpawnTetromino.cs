@@ -5,8 +5,12 @@ using UnityEngine;
 public class SpawnTetromino : MonoBehaviour
 {
     public GameObject[] types;
+    [SerializeField]
+    GameObject nextSpawn;
     private Color currentColor;
+    private static GameObject type = null;
     private GameObject currentObject;
+    private static GameObject nextObject;
     private Color[] colorArray =
     {
         new Color(1f, 0.8f, 0.3f), // yellow 
@@ -27,7 +31,11 @@ public class SpawnTetromino : MonoBehaviour
 
     public void SpawnNew()
     {
-        currentObject = Instantiate(types[Random.Range(0, types.Length)], transform.position, Quaternion.identity);
+        if (type==null)
+        {
+            type = types[Random.Range(0, types.Length)];
+        }
+        currentObject = Instantiate(type, transform.position, Quaternion.identity);
         int tempColor;
         do
         {
@@ -40,5 +48,12 @@ public class SpawnTetromino : MonoBehaviour
         {
            child.GetComponent<Renderer>().material.SetColor("_Color", currentColor);
         }
+
+        type = types[Random.Range(0, types.Length)];
+        Debug.Log(type);
+        Destroy(nextObject);
+        nextObject = Instantiate(type, nextSpawn.transform.position, Quaternion.identity);
+        nextObject.GetComponent<BlockBehavior>().enabled = false;
+
     }
 }
