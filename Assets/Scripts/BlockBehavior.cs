@@ -83,7 +83,7 @@ public class BlockBehavior : MonoBehaviour
                 transform.position -= new Vector3(0, -1, 0);    // return older position
                 GridConditionUpdate();  // update grid condition
                 LineEvent();    // check, destroy  and move lines
-                if (score - levelScore > 2000 && speed < 15)    // if speed is not at max value and player riched +2000 score from the last speedup, do speedup
+                if (score - levelScore >= 2000 && speed < 15)    // if speed is not at max value and player riched +2000 score from the last speedup, do speedup
                 {
                     levelScore = score; 
                     speed++;    
