@@ -19,7 +19,7 @@ public class BlockBehavior : MonoBehaviour
     private static int levelScore = 0;  // score at the last level change (used in the level change)
     private static int speed = 1;   // current game speed
     private int stepCounter = 0;    // how many steps to the bottom did the current object before stop moving (used to determine the finish of the game)
-
+    private int rotationCounter = 0;
 
     int Score
     {
@@ -29,6 +29,23 @@ public class BlockBehavior : MonoBehaviour
         }
     }
 
+    int Length
+    {
+        get
+        {
+            int maxX = 0;
+            foreach (Transform child in transform)
+            {
+                int tempX = (int)Math.Round(child.transform.position.x - transform.transform.position.x);
+                if (maxX < tempX)
+                {
+                    maxX = tempX;
+                }
+                
+            }
+            return maxX;
+        }
+    }
 
 
     // Start is called before the first frame update
@@ -66,7 +83,36 @@ public class BlockBehavior : MonoBehaviour
             // if the displacement has led to an invalid position of the tetro
             if (!CanMove())
             {
-                Rotate(-90);
+                if (transform.position.x < 1)
+                {
+                    transform.position += new Vector3(1, 0, 0);
+                    if (!CanMove())
+                    {
+                        transform.position += new Vector3(1, 0, 0);
+                        if (!CanMove())
+                        {
+                            transform.position -= new Vector3(2, 0, 0);
+                            Rotate(-90);
+                        }
+                    }
+                }
+                else if (transform.position.x + Length > 8)
+                {
+                    transform.position -= new Vector3(1, 0, 0);
+                    if (!CanMove())
+                    {
+                        transform.position -= new Vector3(1, 0, 0);
+                        if (!CanMove())
+                        {
+                            transform.position += new Vector3(2, 0, 0);
+                            Rotate(-90);
+                        }
+                    }
+                }
+                else
+                {
+                    Rotate(-90);
+                }
             }
         }
 
@@ -137,13 +183,49 @@ public class BlockBehavior : MonoBehaviour
     /// <param name="deg">degrees to rotate</param>
     void Rotate(int deg)
     {
+        int temp = Math.Sign(deg);
+        rotationCounter += temp;
         transform.RotateAround(transform.TransformPoint(rotationCenter), new Vector3(0, 0, 1), deg);    // rotate the object
         foreach (Transform child in transform)  // rotate all child object backward to save the pattern
         {
             child.rotation = Quaternion.Euler(new Vector3(0, 0, child.rotation.eulerAngles.z - deg));
         }
+        if (NeedToMoveAfterRotate())
+        {
+            if (rotationCounter % 4 == 2)
+            {
+                transform.position += new Vector3(0, -temp, 0);
+                if (!CanMove())
+                {
+                    transform.position -= new Vector3(0, -temp, 0);
+                }
+            }
+
+            else if (rotationCounter % 4 == 3)
+            {
+                transform.position += new Vector3(temp, temp, 0);
+                if (!CanMove())
+                {
+                    transform.position -= new Vector3(temp, temp, 0);
+                }
+            }
+            else if (rotationCounter % 4 == 0)
+            {
+                transform.position += new Vector3(-temp, 0, 0);
+                if (!CanMove())
+                {
+                    transform.position -= new Vector3(-temp, 0, 0);
+                }
+            }
+        }
     }
 
+    bool NeedToMoveAfterRotate()
+    {
+        if (rotationCenter.x == 0.5f) return false;
+        if (FindObjectOfType<SpawnTetromino>().Type.Substring(10, 1) == "T") return false;
+        return true;
+    }
     /// <summary>
     /// Generate rotation center using figure form
     /// </summary>
@@ -165,6 +247,7 @@ public class BlockBehavior : MonoBehaviour
                 maxY = tempY;
             }
         }
+
 
         if (maxX % 2 == 1) // if it is square or line
         {

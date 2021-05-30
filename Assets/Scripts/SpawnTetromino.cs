@@ -23,6 +23,13 @@ public class SpawnTetromino : MonoBehaviour
     };
     private int lastColor;  // integer value of last used color from colorArray
 
+    public string Type
+    {
+        get
+        {
+            return currentObject.transform.name;
+        }
+    }
     // Start is called before the first frame update
     void Start()
     {
