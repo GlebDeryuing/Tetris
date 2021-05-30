@@ -25,7 +25,7 @@ public class BlockBehavior : MonoBehaviour
     {
         get
         {
-            return Score;
+            return score;
         }
     }
 
@@ -261,8 +261,15 @@ public class BlockBehavior : MonoBehaviour
     {
         for (int x = 0; x < xMax; x++)  // for all elements in the line
         {
-            Destroy(currentGridCondition[x, line].gameObject);  // destroy
+            Transform temp = currentGridCondition[x, line];
+            Transform par = temp.parent;
+            temp.parent = null;
+            Destroy(temp.gameObject);  // destroy
             currentGridCondition[x, line] = null;   // clean up grid at the position
+            if (par.childCount == 0)    // clean up parent object if it is empty
+            {
+                Destroy(par.gameObject);
+            }
         }
         // update line value
         lines++;

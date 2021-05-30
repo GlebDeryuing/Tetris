@@ -52,6 +52,7 @@ public class SpawnTetromino : MonoBehaviour
         foreach (Transform child in currentObject.transform)    // fill all elements of current tetro to the new generated color
         {
            child.GetComponent<Renderer>().material.SetColor("_Color", currentColor);
+            child.GetComponent<SpriteRenderer>().color = currentColor;
         }
 
         type = types[Random.Range(0, types.Length)];    // generate new type for the next tetro
