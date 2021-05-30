@@ -143,7 +143,7 @@ public class BlockBehavior : MonoBehaviour
                 }
                 else    // if the figure rested after one step, end the game
                 {
-                    FindObjectOfType<InfoShow>().EndGame();     
+                    FindObjectOfType<EndScreen>().EndGame(); //.EndGame();     
                     
                 }
             }

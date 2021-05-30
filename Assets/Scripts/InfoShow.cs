@@ -47,21 +47,4 @@ public class InfoShow : MonoBehaviour
         textLines.text = lines.ToString();
     }
 
-    /// <summary>
-    /// Show end screen by moving it to the camera view
-    /// </summary>
-    public void EndGame()
-    {
-        endScreen.transform.position += new Vector3(30f, 0, 0);
-    }
-
-    /// <summary>
-    /// Hide end screen by moving it out from the camera view
-    /// </summary>
-    public void StartGame()
-    {
-        endScreen.transform.position -= new Vector3(30f, 0, 0);
-    }
-
-
 }
