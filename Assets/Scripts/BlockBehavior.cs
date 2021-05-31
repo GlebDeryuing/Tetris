@@ -61,8 +61,7 @@ public class BlockBehavior : MonoBehaviour
 
     // Update is called once per frame
     void Update()
-    {    
-
+    {           
         if (Input.GetKeyUp(KeyCode.LeftArrow) || Input.GetKeyUp(KeyCode.RightArrow) || // check left/right arrow keys released
             Input.GetKeyUp(KeyCode.A) || Input.GetKeyUp(KeyCode.D)) // check a/d  keys released
         {
@@ -143,8 +142,7 @@ public class BlockBehavior : MonoBehaviour
                 }
                 else    // if the figure rested after one step, end the game
                 {
-                    FindObjectOfType<EndScreen>().EndGame(); //.EndGame();     
-                    
+                    FindObjectOfType<EndScreen>().EndGame();
                 }
             }
             lastTimeFall = Time.time;   // update falltime
@@ -345,13 +343,16 @@ public class BlockBehavior : MonoBehaviour
         for (int x = 0; x < xMax; x++)  // for all elements in the line
         {
             Transform temp = currentGridCondition[x, line];
-            Transform par = temp.parent;
-            temp.parent = null;
-            Destroy(temp.gameObject);  // destroy
-            currentGridCondition[x, line] = null;   // clean up grid at the position
-            if (par.childCount == 0)    // clean up parent object if it is empty
+            if (temp != null)
             {
-                Destroy(par.gameObject);
+                Transform par = temp.parent;
+                temp.parent = null;
+                Destroy(temp.gameObject);  // destroy
+                currentGridCondition[x, line] = null;   // clean up grid at the position
+                if (par.childCount == 0)    // clean up parent object if it is empty
+                {
+                    Destroy(par.gameObject);
+                }
             }
         }
         // update line value
@@ -385,6 +386,20 @@ public class BlockBehavior : MonoBehaviour
             }
         }
     }
+
+    public void Restart()
+    {
+        for (int i=0; i<yMax; i++)
+        {
+            LineDestroy(i);
+        }
+        score = 0;
+        lines = 0;
+        speed = 1;
+        levelScore = 0;
+        FindObjectOfType<SpawnTetromino>().Type = null;
+        FindObjectOfType<SpawnTetromino>().SpawnNew();
+}
 
     
 }

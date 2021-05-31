@@ -29,6 +29,13 @@ public class SpawnTetromino : MonoBehaviour
         {
             return currentObject.transform.name;
         }
+        set
+        {
+            if (value == null)
+            {
+                type = null;
+            }
+        }
     }
     // Start is called before the first frame update
     void Start()
