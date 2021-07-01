@@ -189,7 +189,7 @@ public class BlockBehavior : MonoBehaviourPunCallbacks
         transform.RotateAround(transform.TransformPoint(rotationCenter), new Vector3(0, 0, 1), deg);    // rotate the object
         foreach (Transform child in transform)  // rotate all child object backward to save the pattern
         {
-            child.rotation = Quaternion.Euler(new Vector3(0, 0, child.rotation.eulerAngles.z - deg));
+            child.Rotate(0, 0, -deg);
         }
         if (NeedToMoveAfterRotate())
         {
