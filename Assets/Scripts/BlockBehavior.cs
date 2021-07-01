@@ -3,8 +3,9 @@ using System.Collections.Generic;
 using System;
 using UnityEngine;
 using UnityEditor;
+using Photon.Pun;
 
-public class BlockBehavior : MonoBehaviour
+public class BlockBehavior : MonoBehaviourPunCallbacks
 {
     private System.Random randomizer = new System.Random(); // randomizer variable
     private int isMoving = 0; // variable, contains current X-movement condition: 0 - not moving, negative value - moving to left, positive - to right
@@ -21,6 +22,7 @@ public class BlockBehavior : MonoBehaviour
     private int stepCounter = 0;    // how many steps to the bottom did the current object before stop moving (used to determine the finish of the game)
     private int rotationCounter = 0;
 
+    private new PhotonView photonView;
     int Score
     {
         get
@@ -56,12 +58,13 @@ public class BlockBehavior : MonoBehaviour
         FindObjectOfType<InfoShow>().UpdateSpeed(speed);
         FindObjectOfType<InfoShow>().UpdateScore(score);
         FindObjectOfType<InfoShow>().UpdateLines(lines);
-
+        photonView = GetComponent<PhotonView>();
     }
 
     // Update is called once per frame
     void Update()
-    {           
+    {
+        if (!photonView.IsMine) return;
         if (Input.GetKeyUp(KeyCode.LeftArrow) || Input.GetKeyUp(KeyCode.RightArrow) || // check left/right arrow keys released
             Input.GetKeyUp(KeyCode.A) || Input.GetKeyUp(KeyCode.D)) // check a/d  keys released
         {
@@ -347,11 +350,11 @@ public class BlockBehavior : MonoBehaviour
             {
                 Transform par = temp.parent;
                 temp.parent = null;
-                Destroy(temp.gameObject);  // destroy
+                PhotonNetwork.Destroy(temp.gameObject);  // destroy
                 currentGridCondition[x, line] = null;   // clean up grid at the position
                 if (par.childCount == 0)    // clean up parent object if it is empty
                 {
-                    Destroy(par.gameObject);
+                    PhotonNetwork.Destroy(par.gameObject);
                 }
             }
         }

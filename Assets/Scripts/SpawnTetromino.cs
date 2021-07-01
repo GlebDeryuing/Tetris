@@ -1,8 +1,10 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using Photon.Pun;
 
-public class SpawnTetromino : MonoBehaviour
+
+public class SpawnTetromino : MonoBehaviourPunCallbacks
 {
     public GameObject[] types;  // array, which contains all tetromino types prefabs
     [SerializeField]
@@ -40,7 +42,10 @@ public class SpawnTetromino : MonoBehaviour
     // Start is called before the first frame update
     void Start()
     {
-        SpawnNew(); // if game is started - spaw new tetromino
+        if (PhotonNetwork.IsMasterClient)
+        {
+            SpawnNew(); // if game is started - spaw new tetromino
+        }
     }
 
     /// <summary>
@@ -53,7 +58,7 @@ public class SpawnTetromino : MonoBehaviour
         {
             type = types[Random.Range(0, types.Length)];    // generete new type immediately
         }
-        currentObject = Instantiate(type, transform.position, Quaternion.identity);     // generating new object with type from "type"
+        currentObject = PhotonNetwork.Instantiate(type.name, transform.position, Quaternion.identity);     // generating new object with type from "type"
         // generating new color what is not the same to the last used color
         int tempColor;
         do
@@ -70,7 +75,7 @@ public class SpawnTetromino : MonoBehaviour
 
         type = types[Random.Range(0, types.Length)];    // generate new type for the next tetro
         Destroy(nextObject);    // destroy old next tetro
-        nextObject = Instantiate(type, nextSpawn.transform.position, Quaternion.identity);  // and spawn new one with generated type
+        nextObject = PhotonNetwork.Instantiate(type.name, nextSpawn.transform.position, Quaternion.identity);  // and spawn new one with generated type
         nextObject.GetComponent<BlockBehavior>().enabled = false;
 
     }
