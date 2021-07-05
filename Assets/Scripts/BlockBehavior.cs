@@ -64,7 +64,7 @@ public class BlockBehavior : MonoBehaviourPunCallbacks
     // Update is called once per frame
     void Update()
     {
-        if (!photonView.IsMine)
+        if (!PhotonNetwork.IsMasterClient)
         {
             return;
         }
@@ -122,7 +122,8 @@ public class BlockBehavior : MonoBehaviourPunCallbacks
         }
 
         // fall dows if:
-        if (((Input.GetKey(KeyCode.DownArrow) || Input.GetKey(KeyCode.S)) && Time.time - lastTimeFall > stepTime / (10 * speed)) || Time.time - lastTimeFall > stepTime / speed)
+        if (((Input.GetKey(KeyCode.DownArrow) || Input.GetKey(KeyCode.S)) && PhotonNetwork.Time - lastTimeFall > stepTime / (10 * speed)) ||
+            PhotonNetwork.Time - lastTimeFall > stepTime / speed)
         // if the down / s key is pressed and the time elapsed since the last movement is more than the time of one step divided by 10 speeds 
         // or the time since the last step is more than the time of one step divided by 1 speed
         {
@@ -151,11 +152,11 @@ public class BlockBehavior : MonoBehaviourPunCallbacks
                     FindObjectOfType<EndScreen>().EndGame();
                 }
             }
-            lastTimeFall = Time.time;   // update falltime
+            lastTimeFall = (float)PhotonNetwork.Time;   // update falltime
         }
 
         // move to left/right:
-        if (isMoving != 0 && Time.time - lastTimeMove > stepTime / (5*Math.Pow(speed, 0.5)))
+        if (isMoving != 0 && PhotonNetwork.Time - lastTimeMove > stepTime / (5*Math.Pow(speed, 0.5)))
         // if on of the buttons is pressed and times before steps is bigger that stepTime/5 (plus a slight acceleration from increasing the speed of the game) 
         {
             transform.position += new Vector3(isMoving, 0, 0);  // move it to left/right
@@ -164,7 +165,7 @@ public class BlockBehavior : MonoBehaviourPunCallbacks
             {
                 transform.position -= new Vector3(isMoving, 0, 0); // return older position
             }
-            lastTimeMove = Time.time; // update movetime
+            lastTimeMove = (float)PhotonNetwork.Time; // update movetime
         }
 
         //speed up/down:

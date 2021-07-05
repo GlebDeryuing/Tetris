@@ -2,7 +2,8 @@
 using System.Collections.Generic;
 using UnityEngine;
 using Photon.Pun;
-
+using Photon.Realtime;
+using ExitGames.Client.Photon;
 
 public class SpawnTetromino : MonoBehaviourPunCallbacks 
 {
@@ -10,12 +11,12 @@ public class SpawnTetromino : MonoBehaviourPunCallbacks
     [SerializeField]
     GameObject nextSpawn;   // gameobject - position of spawning "next figure" preview
     private Color currentColor; // color of the current tetromino
-    private Color nextColor;
+    private Color nextColor = Color.yellow;
     private Color noColor = new Color();
     private static GameObject type1 = null, type2 = null, type3 = null;  // type of the next tetromino
     private GameObject currentObject;   // link to the current tetromino
     private static GameObject[] ObjectPool = new GameObject[3];
-    private static int selected;
+    private static int selected = 0;
     private static GameObject nextObject;   // link to the next tetromino in the "next figure" preview
     private Color[] colorArray =    // array, which contains all color tetromino can spawn with
     {
@@ -60,7 +61,7 @@ public class SpawnTetromino : MonoBehaviourPunCallbacks
         }
     }
 
-    private void Update()
+    void Update()
     {
         if (nextObject != ObjectPool[selected])
         {
@@ -69,13 +70,23 @@ public class SpawnTetromino : MonoBehaviourPunCallbacks
             Colorize(nextColor, nextObject.transform);
         }
 
-        if (Input.GetKeyDown(KeyCode.Q))
+        if (!PhotonNetwork.IsMasterClient &&
+            Input.GetKeyDown(KeyCode.A))
         {
-            if (selected != 0) selected = selected - 1;
+            if (selected != 0)
+            {
+                selected = selected - 1;
+                PhotonNetwork.RaiseEvent(42, selected, RaiseEventOptions.Default, SendOptions.SendUnreliable);
+            }
         }
-        if (Input.GetKeyDown(KeyCode.E))
+        if (!PhotonNetwork.IsMasterClient && 
+            Input.GetKeyDown(KeyCode.D))
         {
-            if (selected != 2) selected = selected + 1;
+            if (selected != 2)
+            {
+                selected = selected + 1;
+                PhotonNetwork.RaiseEvent(42, selected, RaiseEventOptions.Default, SendOptions.SendUnreliable);
+            }
         }
 
     }
@@ -115,7 +126,7 @@ public class SpawnTetromino : MonoBehaviourPunCallbacks
             int temp = Random.Range(0, colorArray.Length);
             nextColor = colorArray[temp];
         }
-        while (nextColor == noColor && currentColor == nextColor);
+        while (nextColor == noColor || currentColor == nextColor);
 
         Colorize(currentColor, currentObject.transform);
         type1 = types[Random.Range(0, types.Length)];    // generate new type for the next tetro
@@ -133,6 +144,13 @@ public class SpawnTetromino : MonoBehaviourPunCallbacks
         {
             ObjectPool[i].GetComponent<BlockBehavior>().enabled = false;
         }
+        int[] data = new int[3] {
+            ObjectPool[0].GetPhotonView().ViewID,
+            ObjectPool[1].GetPhotonView().ViewID,
+            ObjectPool[2].GetPhotonView().ViewID
+        };
+        Debug.Log(data[0] + " // " +  data[1] + " // " + data[2]);
+        PhotonNetwork.RaiseEvent(43, data, RaiseEventOptions.Default, SendOptions.SendUnreliable);
         selected = 0;
         nextObject = ObjectPool[selected];
         Colorize(nextColor, nextObject.transform);
@@ -146,5 +164,33 @@ public class SpawnTetromino : MonoBehaviourPunCallbacks
             child.GetComponent<SpriteRenderer>().color = color;
         }
     }
-        
+    public void OnEvent(EventData photonEvent)
+    {
+
+        Debug.Log(selected);
+        switch (photonEvent.Code)
+        {
+            case 42:
+                Debug.Log("selected changed");
+                selected = (int)photonEvent.CustomData;
+                break;
+            case 43:
+                Debug.Log("pool changed");
+                int[] temp = (int[])photonEvent.CustomData;
+                ObjectPool[0] = PhotonView.Find(temp[0]).gameObject;
+                ObjectPool[1] = PhotonView.Find(temp[1]).gameObject;
+                ObjectPool[2] = PhotonView.Find(temp[2]).gameObject;
+                break;
+        }
+    }
+
+    private void OnEnable()
+    {
+        PhotonNetwork.AddCallbackTarget(this);
+    }
+
+    private void OnDisable()
+    {
+        PhotonNetwork.RemoveCallbackTarget(this);
+    }
 }
