@@ -4,6 +4,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
+using Photon.Realtime;
 
 public class LobbyManager : MonoBehaviourPunCallbacks
 {
@@ -23,6 +24,7 @@ public class LobbyManager : MonoBehaviourPunCallbacks
         Debug.Log(message);
     }
 
+  
     public override void OnConnectedToMaster()
     {
         Log("Successfully connected to Master");
@@ -31,9 +33,17 @@ public class LobbyManager : MonoBehaviourPunCallbacks
     public override void OnJoinedRoom()
     {
         Log("Joined room");
-        PhotonNetwork.LoadLevel("SampleScene");
+        //PhotonNetwork.LoadLevel("SampleScene");
+        
     }
 
+    public override void OnPlayerEnteredRoom(Player newPlayer)
+    {
+        if (PhotonNetwork.CurrentRoom.PlayerCount == 2)
+        {
+            PhotonNetwork.LoadLevel("SampleScene");
+        }
+    }
     public void CreateRoom()
     {
         try
