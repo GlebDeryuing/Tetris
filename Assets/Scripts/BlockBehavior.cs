@@ -4,10 +4,11 @@ using System;
 using UnityEngine;
 using UnityEditor;
 using Photon.Pun;
+using Photon.Realtime;
+using ExitGames.Client.Photon;
 
-public class BlockBehavior : MonoBehaviourPunCallbacks
+public class BlockBehavior : MonoBehaviourPunCallbacks, IOnEventCallback
 {
-    private System.Random randomizer = new System.Random(); // randomizer variable
     private int isMoving = 0; // variable, contains current X-movement condition: 0 - not moving, negative value - moving to left, positive - to right
     private float lastTimeFall; // used to calculate time between fall steps
     private float lastTimeMove; // used to calculate time between move steps
@@ -58,7 +59,19 @@ public class BlockBehavior : MonoBehaviourPunCallbacks
         FindObjectOfType<InfoShow>().UpdateSpeed(speed);
         FindObjectOfType<InfoShow>().UpdateScore(score);
         FindObjectOfType<InfoShow>().UpdateLines(lines);
+        InfoSend();
         photonView = GetComponent<PhotonView>();
+    }
+
+    private void InfoSend()
+    {
+        int[] info = new int[]
+        {
+            speed,
+            score,
+            lines
+        };
+        PhotonNetwork.RaiseEvent(55, info, RaiseEventOptions.Default, SendOptions.SendUnreliable);
     }
 
     // Update is called once per frame
@@ -84,55 +97,55 @@ public class BlockBehavior : MonoBehaviourPunCallbacks
                 
         if (Input.GetKeyDown(KeyCode.UpArrow) || Input.GetKeyDown(KeyCode.Space)) // check up key pressed
         {
-            Rotate(90);
+            Rotate(transform, rotationCenter, 90);
             // if the displacement has led to an invalid position of the tetro
             if (!CanMove())
             {
                 if (transform.position.x < 1)
                 {
-                    transform.position += new Vector3(1, 0, 0);
+                    Move(transform, 1, 0);
                     if (!CanMove())
                     {
-                        transform.position += new Vector3(1, 0, 0);
+                        Move(transform, 1, 0);
                         if (!CanMove())
                         {
-                            transform.position -= new Vector3(2, 0, 0);
-                            Rotate(-90);
+                            Move(transform, -2, 0);
+                            Rotate(transform, rotationCenter, -90);
                         }
                     }
                 }
                 else if (transform.position.x + Length > 8)
                 {
-                    transform.position -= new Vector3(1, 0, 0);
+                    Move(transform, -1, 0);
                     if (!CanMove())
                     {
-                        transform.position -= new Vector3(1, 0, 0);
+                        Move(transform, -1, 0);
                         if (!CanMove())
                         {
-                            transform.position += new Vector3(2, 0, 0);
-                            Rotate(-90);
+                            Move(transform, 2, 0);
+                            Rotate(transform, rotationCenter, -90);
                         }
                     }
                 }
                 else
                 {
-                    Rotate(-90);
+                    Rotate(transform, rotationCenter, -90);
                 }
             }
         }
 
         // fall dows if:
-        if (((Input.GetKey(KeyCode.DownArrow) || Input.GetKey(KeyCode.S)) && PhotonNetwork.Time - lastTimeFall > stepTime / (10 * speed)) ||
-            PhotonNetwork.Time - lastTimeFall > stepTime / speed)
+        if (((Input.GetKey(KeyCode.DownArrow) || Input.GetKey(KeyCode.S)) && PhotonNetwork.Time - lastTimeFall > stepTime / (10 * speed))
+            || PhotonNetwork.Time - lastTimeFall > stepTime / speed)
         // if the down / s key is pressed and the time elapsed since the last movement is more than the time of one step divided by 10 speeds 
         // or the time since the last step is more than the time of one step divided by 1 speed
         {
             stepCounter++;  // plus one step to the bottom
-            transform.position += new Vector3(0, -1, 0);    // move the tetro to the bottom
+            Move(transform, 0, -1);    // move the tetro to the bottom
             // if the displacement has led to an invalid position of the tetro
             if (!CanMove()) // the figure has finally landed
             {
-                transform.position -= new Vector3(0, -1, 0);    // return older position
+                Move(transform, 0, 1);    // return older position
                 GridConditionUpdate();  // update grid condition
                 LineEvent();    // check, destroy  and move lines
                 if (score - levelScore >= 2000 && speed < 15)    // if speed is not at max value and player riched +2000 score from the last speedup, do speedup
@@ -140,6 +153,7 @@ public class BlockBehavior : MonoBehaviourPunCallbacks
                     levelScore = score; 
                     speed++;    
                     FindObjectOfType<InfoShow>().UpdateSpeed(speed);
+                    InfoSend();
                 }
                 this.enabled = false;   // disable control of this figure
 
@@ -159,11 +173,11 @@ public class BlockBehavior : MonoBehaviourPunCallbacks
         if (isMoving != 0 && PhotonNetwork.Time - lastTimeMove > stepTime / (5*Math.Pow(speed, 0.5)))
         // if on of the buttons is pressed and times before steps is bigger that stepTime/5 (plus a slight acceleration from increasing the speed of the game) 
         {
-            transform.position += new Vector3(isMoving, 0, 0);  // move it to left/right
+            Move(transform, isMoving, 0);  // move it to left/right
             // if the displacement has led to an invalid position of the tetro
             if (!CanMove()) // hit the wall
             {
-                transform.position -= new Vector3(isMoving, 0, 0); // return older position
+                Move(transform, -isMoving, 0); // return older position
             }
             lastTimeMove = (float)PhotonNetwork.Time; // update movetime
         }
@@ -173,56 +187,95 @@ public class BlockBehavior : MonoBehaviourPunCallbacks
         {
             speed++;
             FindObjectOfType<InfoShow>().UpdateSpeed(speed);
+            InfoSend();
         }
         else if (Input.GetKeyDown(KeyCode.KeypadMinus) && speed > 1)    // if - is pressed and speed is not at the min value 
         {
             speed--;
             FindObjectOfType<InfoShow>().UpdateSpeed(speed);
+            InfoSend();
         }
 
+    }
+
+    void Move (Transform obj, int horizontal, int vertical)
+    {
+        obj.position += new Vector3(horizontal, vertical, 0);
+        float[] data = new float[3]
+        {
+            obj.gameObject.GetPhotonView().ViewID,
+            obj.position.x,
+            obj.position.y
+        };
+        PhotonNetwork.RaiseEvent(51, data, RaiseEventOptions.Default, SendOptions.SendUnreliable);
     }
 
     /// <summary>
     /// Rotation function: rotate the object to the variable value
     /// </summary>
     /// <param name="deg">degrees to rotate</param>
-    void Rotate(int deg)
+    void Rotate (Transform obj, Vector3 center, int deg)
     {
+        float x, y, tempChanger;
         int temp = Math.Sign(deg);
         rotationCounter += temp;
-        transform.RotateAround(transform.TransformPoint(rotationCenter), new Vector3(0, 0, 1), deg);    // rotate the object
-        foreach (Transform child in transform)  // rotate all child object backward to save the pattern
+
+        /*        
+        obj.RotateAround(obj.TransformPoint(center), new Vector3(0, 0, 1), deg);    // rotate the object
+        foreach (Transform child in obj)  // rotate all child object backward to save the pattern
         {
             child.Rotate(0, 0, -deg);
         }
+        */
+        
+        foreach (Transform child in obj)
+        {
+            x = child.transform.localPosition.x - rotationCenter.x;
+            y = child.transform.localPosition.y - rotationCenter.y;
+            Debug.Log(x + " " + y);
+            tempChanger = x * temp;
+            x = -y * temp;
+            y = tempChanger;
+            Debug.Log("new "+x + " " + y);
+            child.transform.localPosition = new Vector3(x+rotationCenter.x, y+rotationCenter.y, 0);
+            float[] data = new float[3]
+            {
+            child.gameObject.GetPhotonView().ViewID,
+            child.transform.localPosition.x,
+            child.transform.localPosition.y
+            };
+            PhotonNetwork.RaiseEvent(52, data, RaiseEventOptions.Default, SendOptions.SendUnreliable);
+        }
+       
         if (NeedToMoveAfterRotate())
         {
             if (rotationCounter % 4 == 2)
             {
-                transform.position += new Vector3(0, -temp, 0);
+                Move(obj, 0, -temp);
                 if (!CanMove())
                 {
-                    transform.position -= new Vector3(0, -temp, 0);
+                    Move(obj, 0, temp);
                 }
             }
 
             else if (rotationCounter % 4 == 3)
             {
-                transform.position += new Vector3(temp, temp, 0);
+                Move(obj, temp, temp);
                 if (!CanMove())
                 {
-                    transform.position -= new Vector3(temp, temp, 0);
+                    Move(obj, -temp, -temp);
                 }
             }
             else if (rotationCounter % 4 == 0)
             {
-                transform.position += new Vector3(-temp, 0, 0);
+                Move(obj, -temp, 0);
                 if (!CanMove())
                 {
-                    transform.position -= new Vector3(-temp, 0, 0);
+                    Move(obj, temp, 0);
                 }
             }
         }
+        
     }
 
     bool NeedToMoveAfterRotate()
@@ -320,6 +373,7 @@ public class BlockBehavior : MonoBehaviourPunCallbacks
         // update score
         score += tempScore;
         FindObjectOfType<InfoShow>().UpdateScore(score);
+        InfoSend();
     }
 
     /// <summary>
@@ -354,17 +408,20 @@ public class BlockBehavior : MonoBehaviourPunCallbacks
             {
                 Transform par = temp.parent;
                 temp.parent = null;
-                PhotonNetwork.Destroy(temp.gameObject);  // destroy
+                PhotonNetwork.RaiseEvent(50, temp.gameObject.GetPhotonView().ViewID, RaiseEventOptions.Default, SendOptions.SendUnreliable);
+                Destroy(temp.gameObject);  // destroy
                 currentGridCondition[x, line] = null;   // clean up grid at the position
                 if (par.childCount == 0)    // clean up parent object if it is empty
                 {
-                    PhotonNetwork.Destroy(par.gameObject);
+                    PhotonNetwork.RaiseEvent(50, par.gameObject.GetPhotonView().ViewID, RaiseEventOptions.Default, SendOptions.SendUnreliable);
+                    Destroy(par.gameObject);
                 }
             }
         }
         // update line value
         lines++;
         FindObjectOfType<InfoShow>().UpdateLines(lines);
+        InfoSend();
     }
 
     /// <summary>
@@ -386,7 +443,7 @@ public class BlockBehavior : MonoBehaviourPunCallbacks
                     {
                         currentGridCondition[j, currentLine - 1] = child;
                         currentGridCondition[j, currentLine] = null;
-                        child.transform.position += new Vector3(0, -1, 0);
+                        Move(child.transform, 0, -1);
 
                     }
                 }
@@ -406,9 +463,51 @@ public class BlockBehavior : MonoBehaviourPunCallbacks
         levelScore = 0;
         FindObjectOfType<SpawnTetromino>().Type = null;
         FindObjectOfType<SpawnTetromino>().SpawnNew();
-}
+    }
 
-    
+    public void OnEvent(EventData photonEvent)
+    {
+        switch (photonEvent.Code)
+        {
+            case 50:
+                int delID = (int)photonEvent.CustomData;
+                GameObject delObj = PhotonView.Find(delID).gameObject;
+                Destroy(delObj);
+                break;
+
+            case 51:
+                float[] temp = (float[])photonEvent.CustomData;
+                Transform obj = PhotonView.Find((int)temp[0]).gameObject.transform;
+                float hor = temp[1], ver = temp[2];
+                obj.position = new Vector3(hor, ver, 0);
+                break;
+            case 52:
+                float[] data = (float[])photonEvent.CustomData;
+                Transform obj1 = PhotonView.Find((int)data[0]).gameObject.transform;
+                float x = data[1], y = data[2];
+                obj1.localPosition = new Vector3(x, y, 0);
+                break;
+            case 55:
+                int[] speedScoreLines = (int[])photonEvent.CustomData;
+                speed = speedScoreLines[0];
+                score = speedScoreLines[1];
+                lines = speedScoreLines[2];
+                FindObjectOfType<InfoShow>().UpdateSpeed(speed);
+                FindObjectOfType<InfoShow>().UpdateScore(score);
+                FindObjectOfType<InfoShow>().UpdateLines(lines);
+                break;
+        }
+    }
+
+    private void OnEnable()
+    {
+        PhotonNetwork.AddCallbackTarget(this);
+    }
+
+    private void OnDisable()
+    {
+        PhotonNetwork.RemoveCallbackTarget(this);
+    }
 }
 
 
