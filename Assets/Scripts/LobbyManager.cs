@@ -5,9 +5,18 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 using Photon.Realtime;
+using UnityEngine.SceneManagement;
+using ExitGames.Client.Photon;
 
-public class LobbyManager : MonoBehaviourPunCallbacks
+public class LobbyManager : MonoBehaviourPunCallbacks, IOnEventCallback
 {
+    [SerializeField]
+    Text playerText = null;
+    private static float maxTime = 3f, timeLeft;
+    private static bool isStarting = false;
+
+    private static string connectedText = "Connected successfull. Starting in ";
+
     // Start is called before the first frame update
     void Start()
     {
@@ -17,6 +26,28 @@ public class LobbyManager : MonoBehaviourPunCallbacks
         PhotonNetwork.GameVersion = "1";
         PhotonNetwork.AutomaticallySyncScene = true;
         PhotonNetwork.ConnectUsingSettings();
+
+        timeLeft = maxTime;
+        isStarting = false;
+    }
+    private void Update()
+    {
+        if (PhotonNetwork.IsMasterClient && isStarting)
+        {
+            if (timeLeft > 0)
+            {
+                timeLeft -= Time.deltaTime;
+                playerText.text = connectedText + Mathf.Round(timeLeft) + "...";
+                PhotonNetwork.RaiseEvent(60, playerText.text, RaiseEventOptions.Default, SendOptions.SendUnreliable);
+
+            }
+            else
+            {
+                timeLeft = maxTime;
+                isStarting = false;
+                PhotonNetwork.LoadLevel("SampleScene");
+            }
+        }
     }
 
     private void Log (string message)
@@ -33,17 +64,35 @@ public class LobbyManager : MonoBehaviourPunCallbacks
     public override void OnJoinedRoom()
     {
         Log("Joined room");
-        //PhotonNetwork.LoadLevel("SampleScene");
-        
+        if (PhotonNetwork.IsMasterClient)
+        {
+            PhotonNetwork.LoadLevel("WaitingRoom");
+        }
+
+        if (playerText != null) playerText.text = connectedText;
     }
 
     public override void OnPlayerEnteredRoom(Player newPlayer)
     {
         if (PhotonNetwork.CurrentRoom.PlayerCount == 2)
         {
-            PhotonNetwork.LoadLevel("SampleScene");
+            if (playerText != null) playerText.text = connectedText;
+            isStarting = true;
         }
     }
+
+    public override void OnPlayerLeftRoom(Player otherPlayer)
+    {
+        if (playerText != null) playerText.text = "Waiting for the second player...";
+        isStarting = false;
+        timeLeft = maxTime;
+    }
+
+    public override void OnLeftRoom()
+    {
+        SceneManager.LoadScene(0);
+    }
+
     public void CreateRoom()
     {
         try
@@ -68,5 +117,44 @@ public class LobbyManager : MonoBehaviourPunCallbacks
         {
             Log("Room joining error...");
         }
+    }
+
+    public void Leave()
+    {
+        try
+        {
+            if (PhotonNetwork.IsMasterClient)
+            {
+                PhotonNetwork.RaiseEvent(61, true, RaiseEventOptions.Default, SendOptions.SendUnreliable);
+            }
+            PhotonNetwork.LeaveRoom();
+        }
+        catch
+        {
+            Log("Room leaving error...");
+        }
+    }
+
+    public void OnEvent(EventData photonEvent)
+    {
+        switch (photonEvent.Code)
+        {
+            case 60:
+                playerText.text = (string)photonEvent.CustomData;
+                break;
+            case 61:
+                PhotonNetwork.LeaveRoom();
+                break;
+        }
+    }
+
+    private void OnEnable()
+    {
+        PhotonNetwork.AddCallbackTarget(this);
+    }
+
+    private void OnDisable()
+    {
+        PhotonNetwork.RemoveCallbackTarget(this);
     }
 }
