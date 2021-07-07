@@ -30,6 +30,9 @@ public class SpawnTetromino : MonoBehaviourPunCallbacks, IOnEventCallback
         new Color(0.9f, 0.3f, 0.6f),    // pink 
         new Color(0.3f, 0.9f, 0.7f)     // cyan 
     };
+    private static float maxTime = 3f, timeLeft;
+    private static bool wait = false,
+        move = true;
 
     public string Type
     {
@@ -58,13 +61,46 @@ public class SpawnTetromino : MonoBehaviourPunCallbacks, IOnEventCallback
     void Start()
     {
         if (PhotonNetwork.IsMasterClient)
-        {            
-            SpawnNew(); // if game is started - spaw new tetromino
+        {
+            Begin();
         }
+    }
+
+    public void Begin()
+    {
+        ChangeAvalible(true);
+        GenerateNext(); // if game is started - spaw new tetromino
+        WaitStart();
+    }
+
+    private void WaitStart()
+    {
+        timeLeft = maxTime;
+        wait = true;
+    }
+
+    public void ChangeAvalible(bool canMove)
+    {
+        move = canMove;
     }
 
     void Update()
     {
+        if (wait)
+        {
+            if (timeLeft > 0)
+            {
+                timeLeft -= Time.deltaTime;
+
+            }
+            else
+            {
+                timeLeft = maxTime;
+                wait = false;
+                SpawnNew();
+            }
+        }
+
         if (nextObject != ObjectPool[selected])
         {
             Colorize(Color.white, nextObject.transform);
@@ -73,6 +109,7 @@ public class SpawnTetromino : MonoBehaviourPunCallbacks, IOnEventCallback
         }
 
         if (!PhotonNetwork.IsMasterClient &&
+            move &&
             Input.GetKeyDown(KeyCode.A))
         {
             if (selected != 0)
@@ -81,7 +118,8 @@ public class SpawnTetromino : MonoBehaviourPunCallbacks, IOnEventCallback
                 PhotonNetwork.RaiseEvent(42, selected, RaiseEventOptions.Default, SendOptions.SendUnreliable);
             }
         }
-        if (!PhotonNetwork.IsMasterClient && 
+        if (!PhotonNetwork.IsMasterClient &&
+            move &&
             Input.GetKeyDown(KeyCode.D))
         {
             if (selected != 2)
@@ -93,37 +131,8 @@ public class SpawnTetromino : MonoBehaviourPunCallbacks, IOnEventCallback
 
     }
 
-    /// <summary>
-    /// Spawn new Tetromino on the game screen and show which one will be next at the right of the game screen.
-    /// Tetros can't use one color twice, but can have same form.
-    /// </summary>
-    public void SpawnNew()
+    public void GenerateNext()
     {
-        GameObject selectedType = null;
-        if (type1 == null)     // if game starts and type is not set
-        {
-            type1 = types[Random.Range(0, types.Length)];    // generete new type immediately
-            selectedType = type1;            
-        }
-        else
-        {
-            if (selected == 0) selectedType = type1;
-            else if (selected == 1) selectedType = type2;
-            else selectedType = type3;
-        }
-        currentObject = PhotonNetwork.Instantiate(selectedType.name, transform.position, Quaternion.identity);     // generating new object with type from "type"
-        // generating new color what is not the same to the last used color + next color        
-        if (nextColor == noColor)
-        {            
-            int temp = Random.Range(0, colorArray.Length);
-            currentColor = colorArray[temp];
-            currentColorIndex = temp;
-        }
-        else
-        {
-            currentColor = nextColor;
-            currentColorIndex = nextColorIndex;
-        }
         do
         {
             int temp = Random.Range(0, colorArray.Length);
@@ -131,9 +140,6 @@ public class SpawnTetromino : MonoBehaviourPunCallbacks, IOnEventCallback
             nextColorIndex = temp;
         }
         while (nextColor == noColor || currentColor == nextColor);
-        Colorize(currentColor, currentObject.transform);
-        int[] colorData = new int[2] { currentColorIndex, nextColorIndex };
-        PhotonNetwork.RaiseEvent(44, colorData, RaiseEventOptions.Default, SendOptions.SendUnreliable);
 
         type1 = types[Random.Range(0, types.Length)];    // generate new type for the next tetro
         type2 = types[Random.Range(0, types.Length)];
@@ -144,23 +150,41 @@ public class SpawnTetromino : MonoBehaviourPunCallbacks, IOnEventCallback
             PhotonNetwork.Destroy(ObjectPool[i]);
         }
         ObjectPool[0] = PhotonNetwork.Instantiate(type1.name, nextSpawn.transform.position, Quaternion.identity);
-        ObjectPool[1] = PhotonNetwork.Instantiate(type2.name, nextSpawn.transform.position+new Vector3(5, 0, 0), Quaternion.identity);
-        ObjectPool[2] = PhotonNetwork.Instantiate(type3.name, nextSpawn.transform.position+new Vector3(10, 0, 0), Quaternion.identity);// and spawn new one with generated type
+        ObjectPool[1] = PhotonNetwork.Instantiate(type2.name, nextSpawn.transform.position + new Vector3(5, 0, 0), Quaternion.identity);
+        ObjectPool[2] = PhotonNetwork.Instantiate(type3.name, nextSpawn.transform.position + new Vector3(10, 0, 0), Quaternion.identity);// and spawn new one with generated type
         for (int i = 0; i < ObjectPool.Length; i++)
         {
             ObjectPool[i].GetComponent<BlockBehavior>().enabled = false;
         }
-        int[] data = new int[3] {
+        int[] data = new int[4] {
             ObjectPool[0].GetPhotonView().ViewID,
             ObjectPool[1].GetPhotonView().ViewID,
-            ObjectPool[2].GetPhotonView().ViewID
+            ObjectPool[2].GetPhotonView().ViewID,
+            nextColorIndex
         };
-        Debug.Log(data[0] + " // " +  data[1] + " // " + data[2]);
         PhotonNetwork.RaiseEvent(43, data, RaiseEventOptions.Default, SendOptions.SendUnreliable);
         selected = 0;
         nextObject = ObjectPool[selected];
         Colorize(nextColor, nextObject.transform);
-        
+    }
+    /// <summary>
+    /// Spawn new Tetromino on the game screen and show which one will be next at the right of the game screen.
+    /// Tetros can't use one color twice, but can have same form.
+    /// </summary>
+    public void SpawnNew()
+    {
+        GameObject selectedType = null;
+        if (selected == 0) selectedType = type1;
+        else if (selected == 1) selectedType = type2;
+        else selectedType = type3;
+        currentObject = PhotonNetwork.Instantiate(selectedType.name, transform.position, Quaternion.identity);     // generating new object with type from "type"
+                                                                                                                   // generating new color what is not the same to the last used color + next color        
+        currentColor = nextColor;
+        currentColorIndex = nextColorIndex;
+        Colorize(currentColor, currentObject.transform);
+        int[] colorData = new int[1] { currentColorIndex };
+        PhotonNetwork.RaiseEvent(44, colorData, RaiseEventOptions.Default, SendOptions.SendUnreliable);
+        GenerateNext();
     }
  
     private void Colorize (Color color, Transform obj)
@@ -175,15 +199,14 @@ public class SpawnTetromino : MonoBehaviourPunCallbacks, IOnEventCallback
         switch (photonEvent.Code)
         {
             case 42:
-                Debug.Log("selected changed");
                 selected = (int)photonEvent.CustomData;
                 break;
             case 43:
-                Debug.Log("pool changed");
                 int[] temp = (int[])photonEvent.CustomData;
                 ObjectPool[0] = PhotonView.Find(temp[0]).gameObject;
                 ObjectPool[1] = PhotonView.Find(temp[1]).gameObject;
                 ObjectPool[2] = PhotonView.Find(temp[2]).gameObject;
+                nextColor = colorArray[temp[3]];
                 selected = 0;
                 nextObject = ObjectPool[selected];
                 Colorize(nextColor, nextObject.transform);
@@ -192,7 +215,6 @@ public class SpawnTetromino : MonoBehaviourPunCallbacks, IOnEventCallback
                 Transform blockActive = FindObjectOfType<BlockBehavior>().transform;
                 int[] colorData = (int[])photonEvent.CustomData;
                 currentColor = colorArray[colorData[0]];
-                nextColor = colorArray[colorData[1]];
                 Colorize(currentColor, blockActive);
                 break;
         }

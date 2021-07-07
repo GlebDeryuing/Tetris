@@ -462,7 +462,8 @@ public class BlockBehavior : MonoBehaviourPunCallbacks, IOnEventCallback
         speed = 1;
         levelScore = 0;
         FindObjectOfType<SpawnTetromino>().Type = null;
-        FindObjectOfType<SpawnTetromino>().SpawnNew();
+        FindObjectOfType<SpawnTetromino>().Begin();
+
     }
 
     public void OnEvent(EventData photonEvent)

@@ -30,6 +30,7 @@ public class EndScreen : MonoBehaviourPunCallbacks, IOnEventCallback
         {
             PhotonNetwork.RaiseEvent(70, false, RaiseEventOptions.Default, SendOptions.SendUnreliable);
         }
+        FindObjectOfType<SpawnTetromino>().ChangeAvalible(false);
     }
 
     public void StartGame()
@@ -41,6 +42,7 @@ public class EndScreen : MonoBehaviourPunCallbacks, IOnEventCallback
             FindObjectOfType<BlockBehavior>().Restart();    //restart game
             PhotonNetwork.RaiseEvent(70, true, RaiseEventOptions.Default, SendOptions.SendUnreliable);
         }
+        FindObjectOfType<SpawnTetromino>().ChangeAvalible(true);
     }
 
     public void OnEvent(EventData photonEvent)

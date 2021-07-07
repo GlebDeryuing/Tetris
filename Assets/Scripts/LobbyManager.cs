@@ -83,10 +83,18 @@ public class LobbyManager : MonoBehaviourPunCallbacks, IOnEventCallback
     }
 
     public override void OnPlayerLeftRoom(Player otherPlayer)
-    {
-        if (playerText != null) playerText.text = "Waiting for the second player...";
-        isStarting = false;
-        timeLeft = maxTime;
+    {        
+        string currentScene = SceneManager.GetActiveScene().name;
+        if (PhotonNetwork.IsMasterClient && currentScene == "SampleScene")
+        {
+            PhotonNetwork.CurrentRoom.IsOpen = false;
+        }
+        else
+        {
+            if (playerText != null) playerText.text = "Waiting for the second player...";
+            isStarting = false;
+            timeLeft = maxTime;
+        }
     }
 
     public override void OnLeftRoom()
@@ -124,7 +132,8 @@ public class LobbyManager : MonoBehaviourPunCallbacks, IOnEventCallback
     {
         try
         {
-            if (PhotonNetwork.IsMasterClient)
+            string currentScene = SceneManager.GetActiveScene().name;
+            if (PhotonNetwork.IsMasterClient&&currentScene == "SampleScene")
             {
                 PhotonNetwork.RaiseEvent(61, true, RaiseEventOptions.Default, SendOptions.SendUnreliable);
             }
