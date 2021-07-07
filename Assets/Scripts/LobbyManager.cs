@@ -59,6 +59,7 @@ public class LobbyManager : MonoBehaviourPunCallbacks, IOnEventCallback
     public override void OnConnectedToMaster()
     {
         Log("Successfully connected to Master");
+        SceneManager.LoadScene(1);
     }
 
     public override void OnJoinedRoom()
@@ -90,7 +91,7 @@ public class LobbyManager : MonoBehaviourPunCallbacks, IOnEventCallback
 
     public override void OnLeftRoom()
     {
-        SceneManager.LoadScene(0);
+        SceneManager.LoadScene(1);
     }
 
     public void CreateRoom()
@@ -134,6 +135,7 @@ public class LobbyManager : MonoBehaviourPunCallbacks, IOnEventCallback
             Log("Room leaving error...");
         }
     }
+
 
     public void OnEvent(EventData photonEvent)
     {
