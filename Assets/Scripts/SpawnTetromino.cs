@@ -5,12 +5,15 @@ using Photon.Pun;
 using Photon.Realtime;
 using ExitGames.Client.Photon;
 using System.Threading;
+using UnityEngine.UI;
 
 public class SpawnTetromino : MonoBehaviourPunCallbacks, IOnEventCallback
 {
     public GameObject[] types;  // array, which contains all tetromino types prefabs
     [SerializeField]
     GameObject nextSpawn;   // gameobject - position of spawning "next figure" preview
+    [SerializeField]
+    Text timerField;
     private Color currentColor; // color of the current tetromino
     private Color nextColor;
     private Color noColor = new Color();
@@ -33,6 +36,7 @@ public class SpawnTetromino : MonoBehaviourPunCallbacks, IOnEventCallback
     private static float maxTime = 3f, timeLeft;
     private static bool wait = false,
         move = true;
+
 
     public string Type
     {
@@ -60,6 +64,8 @@ public class SpawnTetromino : MonoBehaviourPunCallbacks, IOnEventCallback
     // Start is called before the first frame update
     void Start()
     {
+        timerField.text = "";
+        PhotonNetwork.RaiseEvent(40, timerField.text, RaiseEventOptions.Default, SendOptions.SendUnreliable);
         if (PhotonNetwork.IsMasterClient)
         {
             Begin();
@@ -90,11 +96,15 @@ public class SpawnTetromino : MonoBehaviourPunCallbacks, IOnEventCallback
         {
             if (timeLeft > 0)
             {
+                timerField.text = Mathf.Round(timeLeft)+"...";                
+                PhotonNetwork.RaiseEvent(40, timerField.text, RaiseEventOptions.Default, SendOptions.SendUnreliable);
                 timeLeft -= Time.deltaTime;
 
             }
             else
             {
+                timerField.text = "";
+                PhotonNetwork.RaiseEvent(40, timerField.text, RaiseEventOptions.Default, SendOptions.SendUnreliable);
                 timeLeft = maxTime;
                 wait = false;
                 SpawnNew();
@@ -142,8 +152,16 @@ public class SpawnTetromino : MonoBehaviourPunCallbacks, IOnEventCallback
         while (nextColor == noColor || currentColor == nextColor);
 
         type1 = types[Random.Range(0, types.Length)];    // generate new type for the next tetro
-        type2 = types[Random.Range(0, types.Length)];
-        type3 = types[Random.Range(0, types.Length)];
+        do
+        {
+            type2 = types[Random.Range(0, types.Length)];
+        }
+        while (type2 == type1);
+        do
+        {
+            type3 = types[Random.Range(0, types.Length)];
+        }
+        while (type3 == type1 || type3 == type2);
 
         for (int i = 0; i < ObjectPool.Length && ObjectPool[i] != null; i++)
         {
@@ -198,6 +216,9 @@ public class SpawnTetromino : MonoBehaviourPunCallbacks, IOnEventCallback
     {
         switch (photonEvent.Code)
         {
+            case 40:
+                timerField.text = (string)photonEvent.CustomData;
+                break;
             case 42:
                 selected = (int)photonEvent.CustomData;
                 break;
